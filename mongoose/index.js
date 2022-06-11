@@ -7,14 +7,40 @@ app.use(express.urlencoded({extended:true}));
 app.use(express.json());
 
 app.get("/movies",async(req,res)=>{
-    const movies = await Movie.find();
-    return res.json(movies);
+    const {search,sortBy,page} = req.query;
+    if(search===undefined && sortBy===undefined && page===undefined){
+        const movis = await Movie.find();
+        return res.json(movis);
+    }
+    else if(sortBy){
+        const movis = await Movie.find().sort({[sortBy]: 1}) ;
+        return res.json(movis);
+    }
+    else if(search){
+        const movies = await Movie.find({ title: { $regex: search } });
+        return res.json(movies);
+    }
+    else if(page){
+        if(page===1){
+            const movies = await Movie.find().limit(5);
+            return res.json(movies);
+        }
+        else{
+            const toshow = 5*(page-1);
+            const movies = await Movie.find().skip(toshow).limit(5);
+            return res.json(movies);
+        }
+    }
 })
 
 app.post("/movies",(req,res)=>{
     const movie = new Movie({...req.body});
     movie.save((err,movie)=>{
-        res.json(movie);
+        try {
+            res.send(movie);
+        } catch {
+            res.send(err);
+        }
     })
 })
 
